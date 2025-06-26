@@ -139,10 +139,7 @@ export function LoginForm() {
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-sm text-gray-600">
-            <p>Demo credentials:</p>
-            <p className="font-mono text-xs">admin@example.com / password123</p>
-          </div>
+         
         </CardContent>
       </Card>
     </div>
