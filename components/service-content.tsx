@@ -1,314 +1,543 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { ServiceFilters } from "./service-filters"
-import { MenuCard } from "./menu-card"
+import React, { useState } from "react";
+import {
+  useGetMealsQuery,
+  useAddMealMutation,
+  useUpdateMealMutation,
+  useDeleteMealMutation,
+} from "@/lib/features/meal/mealApi";
+import { useGetPackagesQuery } from "@/lib/features/package/packageApi";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-const menuData = [
-  // Basic Package - 7 Days
-  {
-    id: "basic-sunday",
-    name: "Sunday Special",
-    package: "basic",
-    day: "Sunday",
-    price: 65,
-    image: "/placeholder.svg?height=200&width=300&query=bengali+rice+fish+curry",
-    items: ["Rice", "Fish Curry", "Vegetables", "Lentils"],
-    rating: 4.2,
-  },
-  {
-    id: "basic-monday",
-    name: "Monday Meal",
-    package: "basic",
-    day: "Monday",
-    price: 60,
-    image: "/placeholder.svg?height=200&width=300&query=rice+chicken+vegetables",
-    items: ["Rice", "Chicken", "Mixed Vegetables", "Dal"],
-  },
-  {
-    id: "basic-tuesday",
-    name: "Tuesday Treat",
-    package: "basic",
-    day: "Tuesday",
-    price: 65,
-    image: "/placeholder.svg?height=200&width=300&query=rice+beef+curry+vegetables",
-    items: ["Rice", "Beef Curry", "Cabbage", "Lentils"],
-  },
-  {
-    id: "basic-wednesday",
-    name: "Wednesday Wonder",
-    package: "basic",
-    day: "Wednesday",
-    price: 60,
-    image: "/placeholder.svg?height=200&width=300&query=rice+egg+curry+spinach",
-    items: ["Rice", "Egg Curry", "Spinach", "Dal"],
-  },
-  {
-    id: "basic-thursday",
-    name: "Thursday Thali",
-    package: "basic",
-    day: "Thursday",
-    price: 65,
-    image: "/placeholder.svg?height=200&width=300&query=rice+fish+fry+vegetables",
-    items: ["Rice", "Fish Fry", "Potato Curry", "Lentils"],
-  },
-  {
-    id: "basic-friday",
-    name: "Friday Feast",
-    package: "basic",
-    day: "Friday",
-    price: 70,
-    image: "/placeholder.svg?height=200&width=300&query=rice+mutton+curry+vegetables",
-    items: ["Rice", "Mutton Curry", "Vegetables", "Dal"],
-    isPopular: true,
-    rating: 4.5,
-  },
-  {
-    id: "basic-saturday",
-    name: "Saturday Special",
-    package: "basic",
-    day: "Saturday",
-    price: 65,
-    image: "/placeholder.svg?height=200&width=300&query=rice+chicken+roast+vegetables",
-    items: ["Rice", "Chicken Roast", "Mixed Vegetables", "Lentils"],
-  },
+const defaultIngredient = { name: "", quantity: "", unit: "g" };
+const unitOptions = ["g", "kg", "ml", "l", "pcs"];
+const weekDays = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
+const mealTimes = ["breakfast", "lunch", "dinner"];
 
-  // Standard Package - 7 Days
-  {
-    id: "standard-sunday",
-    name: "Premium Sunday",
-    package: "standard",
-    day: "Sunday",
-    price: 95,
-    image: "/placeholder.svg?height=200&width=300&query=biryani+chicken+raita+salad",
-    items: ["Chicken Biryani", "Raita", "Salad", "Sweet"],
-    isPopular: true,
-    rating: 4.7,
-  },
-  {
-    id: "standard-monday",
-    name: "Monday Deluxe",
-    package: "standard",
-    day: "Monday",
-    price: 85,
-    image: "/placeholder.svg?height=200&width=300&query=rice+fish+curry+vegetables+sweet",
-    items: ["Rice", "Fish Curry", "Vegetables", "Dal", "Sweet"],
-  },
-  {
-    id: "standard-tuesday",
-    name: "Tuesday Premium",
-    package: "standard",
-    day: "Tuesday",
-    price: 90,
-    image: "/placeholder.svg?height=200&width=300&query=rice+beef+curry+vegetables+salad",
-    items: ["Rice", "Beef Curry", "Vegetables", "Lentils", "Salad"],
-  },
-  {
-    id: "standard-wednesday",
-    name: "Wednesday Deluxe",
-    package: "standard",
-    day: "Wednesday",
-    price: 85,
-    image: "/placeholder.svg?height=200&width=300&query=rice+chicken+curry+vegetables+sweet",
-    items: ["Rice", "Chicken Curry", "Vegetables", "Dal", "Sweet"],
-  },
-  {
-    id: "standard-thursday",
-    name: "Thursday Premium",
-    package: "standard",
-    day: "Thursday",
-    price: 90,
-    image: "/placeholder.svg?height=200&width=300&query=rice+fish+fry+vegetables+salad",
-    items: ["Rice", "Fish Fry", "Vegetables", "Lentils", "Salad"],
-  },
-  {
-    id: "standard-friday",
-    name: "Friday Special",
-    package: "standard",
-    day: "Friday",
-    price: 100,
-    image: "/placeholder.svg?height=200&width=300&query=mutton+biryani+raita+sweet",
-    items: ["Mutton Biryani", "Raita", "Salad", "Sweet"],
-    isPopular: true,
-    rating: 4.8,
-  },
-  {
-    id: "standard-saturday",
-    name: "Saturday Deluxe",
-    package: "standard",
-    day: "Saturday",
-    price: 95,
-    image: "/placeholder.svg?height=200&width=300&query=rice+chicken+roast+vegetables+sweet",
-    items: ["Rice", "Chicken Roast", "Vegetables", "Dal", "Sweet"],
-  },
+const MealManageByAdmin = () => {
+  const { data: packagesData } = useGetPackagesQuery();
+  const packages = packagesData?.data || [];
 
-  // Premium Package - 7 Days
-  {
-    id: "premium-sunday",
-    name: "Royal Sunday",
-    package: "premium",
-    day: "Sunday",
-    price: 150,
-    image: "/placeholder.svg?height=200&width=300&query=royal+biryani+kebab+sweet+salad",
-    items: ["Royal Biryani", "Kebab", "Raita", "Salad", "Sweet", "Drink"],
-    isPopular: true,
-    rating: 4.9,
-  },
-  {
-    id: "premium-monday",
-    name: "Monday Royal",
-    package: "premium",
-    day: "Monday",
-    price: 130,
-    image: "/placeholder.svg?height=200&width=300&query=rice+fish+curry+vegetables+sweet+salad",
-    items: ["Rice", "Fish Curry", "Vegetables", "Dal", "Sweet", "Salad"],
-  },
-  {
-    id: "premium-tuesday",
-    name: "Tuesday Royal",
-    package: "premium",
-    day: "Tuesday",
-    price: 140,
-    image: "/placeholder.svg?height=200&width=300&query=rice+beef+curry+vegetables+sweet+drink",
-    items: ["Rice", "Beef Curry", "Vegetables", "Lentils", "Sweet", "Drink"],
-  },
-  {
-    id: "premium-wednesday",
-    name: "Wednesday Royal",
-    package: "premium",
-    day: "Wednesday",
-    price: 135,
-    image: "/placeholder.svg?height=200&width=300&query=rice+chicken+curry+vegetables+sweet+salad",
-    items: ["Rice", "Chicken Curry", "Vegetables", "Dal", "Sweet", "Salad"],
-  },
-  {
-    id: "premium-thursday",
-    name: "Thursday Royal",
-    package: "premium",
-    day: "Thursday",
-    price: 140,
-    image: "/placeholder.svg?height=200&width=300&query=rice+fish+fry+vegetables+sweet+drink",
-    items: ["Rice", "Fish Fry", "Vegetables", "Lentils", "Sweet", "Drink"],
-  },
-  {
-    id: "premium-friday",
-    name: "Friday Royal",
-    package: "premium",
-    day: "Friday",
-    price: 160,
-    image: "/placeholder.svg?height=200&width=300&query=royal+mutton+biryani+kebab+sweet",
-    items: ["Royal Mutton Biryani", "Kebab", "Raita", "Salad", "Sweet", "Drink"],
-    isPopular: true,
-    rating: 5.0,
-  },
-  {
-    id: "premium-saturday",
-    name: "Saturday Royal",
-    package: "premium",
-    day: "Saturday",
-    price: 145,
-    image: "/placeholder.svg?height=200&width=300&query=rice+chicken+roast+vegetables+sweet+salad",
-    items: ["Rice", "Chicken Roast", "Vegetables", "Dal", "Sweet", "Salad"],
-  },
-]
+  const { data: mealsData, isLoading } = useGetMealsQuery();
+  const meals = mealsData?.data || [];
 
-export function ServiceContent() {
-  const [filteredMenus, setFilteredMenus] = useState(menuData)
-  const [packageFilter, setPackageFilter] = useState("all")
-  const [dayFilter, setDayFilter] = useState("all")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [editingMealId, setEditingMealId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [prefilledData, setPrefilledData] = useState({
+    foodPackage: "",
+    availability: "",
+    time: "",
+  });
+  const [formData, setFormData] = useState<any>(getInitialFormState());
 
-  const handlePackageFilter = (value: string) => {
-    setPackageFilter(value)
-    applyFilters(value, dayFilter, searchTerm)
+  const [addMeal] = useAddMealMutation();
+  const [updateMeal] = useUpdateMealMutation();
+  const [deleteMeal] = useDeleteMealMutation();
+
+  function getInitialFormState() {
+    return {
+      name: "",
+      time: "",
+      foodPackage: "",
+      description: "",
+      image: null,
+      ingredients: [defaultIngredient],
+      price: 0,
+      availability: "sunday",
+      deliveryCharges: 0,
+    };
   }
 
-  const handleDayFilter = (value: string) => {
-    setDayFilter(value)
-    applyFilters(packageFilter, value, searchTerm)
-  }
+  const handleIngredientChange = (index: number, field: string, value: string) => {
+    const updated = [...formData.ingredients];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, ingredients: updated });
+  };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    applyFilters(packageFilter, dayFilter, value)
-  }
+  const handlePackageChange = (id: string) => {
+    const selectedPkg = packages.find((pkg) => pkg._id === id);
+    setFormData({
+      ...formData,
+      foodPackage: id,
+      price: selectedPkg?.discountedPrice || 0,
+    });
+  };
 
-  const applyFilters = (pkg: string, day: string, search: string) => {
-    let filtered = menuData
-
-    if (pkg !== "all") {
-      filtered = filtered.filter((menu) => menu.package === pkg)
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, image: file });
     }
+  };
 
-    if (day !== "all") {
-      filtered = filtered.filter((menu) => menu.day.toLowerCase() === day)
-    }
+  const resetForm = () => {
+    setFormData(getInitialFormState());
+    setEditingMealId(null);
+    setIsAddModalOpen(false);
+  };
 
-    if (search) {
-      filtered = filtered.filter(
-        (menu) =>
-          menu.name.toLowerCase().includes(search.toLowerCase()) ||
-          menu.items.some((item) => item.toLowerCase().includes(search.toLowerCase())),
-      )
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    setFilteredMenus(filtered)
-  }
-
-  const handleEdit = (id: string) => {
-    // Find the menu to edit
-    const menuToEdit = menuData.find((menu) => menu.id === id)
-    if (menuToEdit) {
-      // You can pass the menu data to the modal for editing
-      console.log("Edit menu:", menuToEdit)
-      // For now, we'll just log it. You can extend this to open the modal with pre-filled data
-    }
-  }
-
-  const handleDelete = (id: string) => {
-    console.log("Delete menu:", id)
-  }
-
-  const groupedMenus = filteredMenus.reduce(
-    (acc, menu) => {
-      if (!acc[menu.package]) {
-        acc[menu.package] = []
+    const payload = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === "ingredients") {
+        payload.append("ingredients", JSON.stringify(value));
+      } else if (key === "image" && value) {
+        payload.append("image", value);
+      } else if (value !== null && value !== undefined) {
+        payload.append(key, value as any);
       }
-      acc[menu.package].push(menu)
-      return acc
-    },
-    {} as Record<string, typeof menuData>,
-  )
+    });
+
+    try {
+      if (editingMealId) {
+        await updateMeal({ id: editingMealId, data: payload }).unwrap();
+      } else {
+        await addMeal(payload as any).unwrap();
+      }
+      resetForm();
+      alert(editingMealId ? "Meal updated successfully" : "Meal created successfully");
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    }
+  };
+
+  const handleEdit = (meal: any) => {
+    setEditingMealId(meal._id);
+    setFormData({
+      ...meal,
+      ingredients: meal.ingredients || [defaultIngredient],
+      image: null,
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this meal?")) return;
+    try {
+      await deleteMeal(id).unwrap();
+      alert("Meal deleted successfully");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete meal");
+    }
+  };
+
+  const openAddMealModal = (pkgId: string, day: string, time: string) => {
+    setPrefilledData({
+      foodPackage: pkgId,
+      availability: day,
+      time: time,
+    });
+    setFormData({
+      ...getInitialFormState(),
+      foodPackage: pkgId,
+      availability: day,
+      time: time,
+    });
+    setEditingMealId(null);
+    setIsAddModalOpen(true);
+  };
+
+  const renderMealDetails = (meal: any) => {
+    return (
+      <div className="space-y-1 text-sm">
+        <div className="font-medium">{meal.name}</div>
+        <div>${meal.price.toFixed(2)}</div>
+        {meal.description && (
+          <div className="text-gray-500 line-clamp-2">{meal.description}</div>
+        )}
+        {meal.ingredients?.length > 0 && (
+          <div className="mt-1">
+            <div className="font-medium text-xs">Ingredients:</div>
+            <ul className="list-disc list-inside">
+              {meal.ingredients.map((ing: any, i: number) => (
+                <li key={i} className="text-xs">
+                  {ing.name} - {ing.quantity} {ing.unit}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <ServiceFilters onPackageFilter={handlePackageFilter} onDayFilter={handleDayFilter} onSearch={handleSearch} />
+    <div className="p-6 min-w-8xl mx-auto space-y-8">
+      {/* Add/Edit Meal Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingMealId ? "Edit Meal" : "Add New Meal"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Meal Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Meal name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
+              </div>
 
-      {Object.entries(groupedMenus).map(([packageType, menus]) => (
-        <div key={packageType} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-[#1d1f2c] capitalize">
-              {packageType} Package ({menus.length} menus)
-            </h2>
-            <div className="text-sm text-[#777980]">
-              Price range: ৳{Math.min(...menus.map((m) => m.price))} - ৳{Math.max(...menus.map((m) => m.price))}
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Select
+                  value={formData.time}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, time: value })
+                  }
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mealTimes.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time.charAt(0).toUpperCase() + time.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="package">Package</Label>
+                <Select
+                  value={formData.foodPackage}
+                  onValueChange={handlePackageChange}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Package" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packages.map((pkg) => (
+                      <SelectItem key={pkg._id} value={pkg._id}>
+                        {pkg.packageName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="price">Price</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: parseFloat(e.target.value) })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="delivery">Delivery Charges</Label>
+                <Input
+                  id="delivery"
+                  type="number"
+                  placeholder="Delivery Charges"
+                  value={formData.deliveryCharges}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      deliveryCharges: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="availability">Available Day</Label>
+                <Select
+                  value={formData.availability}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, availability: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {weekDays.map((day) => (
+                      <SelectItem key={day} value={day}>
+                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="image">Image</Label>
+                <Input
+                  id="image"
+                  type="file"
+                  onChange={handleImageChange}
+                  accept="image/*"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {menus.map((menu) => (
-              <MenuCard key={menu.id} menu={menu} onEdit={handleEdit} onDelete={handleDelete} />
-            ))}
-          </div>
-        </div>
-      ))}
+            <div className="space-y-2">
+              <Label>Ingredients</Label>
+              <div className="space-y-2">
+                {formData.ingredients.map((ing: any, i: number) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-5">
+                      <Input
+                        placeholder="Name"
+                        value={ing.name}
+                        onChange={(e) =>
+                          handleIngredientChange(i, "name", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        placeholder="Quantity"
+                        value={ing.quantity}
+                        onChange={(e) =>
+                          handleIngredientChange(i, "quantity", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Select
+                        value={ing.unit}
+                        onValueChange={(value) =>
+                          handleIngredientChange(i, "unit", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unitOptions.map((u) => (
+                            <SelectItem key={u} value={u}>
+                              {u}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-1">
+                      {i > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const updated = [...formData.ingredients];
+                            updated.splice(i, 1);
+                            setFormData({ ...formData, ingredients: updated });
+                          }}
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      ingredients: [...formData.ingredients, defaultIngredient],
+                    })
+                  }
+                >
+                  + Add Ingredient
+                </Button>
+              </div>
+            </div>
 
-      {filteredMenus.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-[#777980] text-lg">No menus found matching your criteria</div>
-          <div className="text-sm text-[#777980] mt-2">Try adjusting your filters or search terms</div>
-        </div>
-      )}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => resetForm()}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingMealId ? "Update Meal" : "Create Meal"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Meals Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Meals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {meals.map((pkg: any) => (
+                <div key={pkg._id} className="space-y-4">
+                  <h3 className="text-xl font-bold">{pkg.packageInfo.packageName}</h3>
+                  <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                    <Table className="min-w-[800px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Day</TableHead>
+                          <TableHead>Breakfast</TableHead>
+                          <TableHead>Lunch</TableHead>
+                          <TableHead>Dinner</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {weekDays.map((day) => (
+                          <TableRow key={day}>
+                            <TableCell className="font-medium capitalize min-w-[120px]">
+                              {day}
+                            </TableCell>
+                            {mealTimes.map((time) => {
+                              const meal = pkg.days[day]?.find(
+                                (m: any) => m.time === time
+                              );
+                              return (
+                                <TableCell key={time} className="min-w-[250px]">
+                                  {meal ? (
+                                    <div className="flex justify-between items-start gap-4">
+                                      <div className="flex-1">
+                                        {renderMealDetails(meal)}
+                                      </div>
+                                      <div className="flex gap-1">
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => handleEdit(meal)}
+                                            >
+                                              Edit
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Edit {meal.name}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="destructive"
+                                              onClick={() => handleDelete(meal._id)}
+                                            >
+                                              Delete
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Delete {meal.name}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex justify-end">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => openAddMealModal(pkg._id, day, time)}
+                                      >
+                                        + Add {time}
+                                      </Button>
+                                    </div>
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  )
-}
+  );
+};
+
+export default MealManageByAdmin;

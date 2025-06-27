@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { LayoutDashboard, Users, Bike, Utensils, Settings, FileText, ShoppingBag, LogOut, Camera } from "lucide-react"
+import { LayoutDashboard, Users, Bike, Utensils, Settings, FileText, ShoppingBag, LogOut, Camera,Package2Icon, Ham } from "lucide-react"
 import { usePathname } from "next/navigation"
 
 import {
@@ -36,14 +36,14 @@ const navItems = [
     icon: Bike,
   },
   {
-    title: "Service",
-    url: "/service",
-    icon: Utensils,
+    title: "Meals",
+    url: "/meal",
+    icon: Ham,
   },
   {
-    title: "Category",
-    url: "/category",
-    icon: Camera,
+    title: "Packages",
+    url: "/package",
+    icon: Package2Icon,
   },
   {
     title: "Others Service",

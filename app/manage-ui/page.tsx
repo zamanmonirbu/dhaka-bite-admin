@@ -16,12 +16,12 @@ export default function page() {
               </p>
             </div>
     
-            <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2">
               <HeroImageManage />
-            </div>
-            <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2">
             <DeliveryAreaManager />
+            {/* <div >
             </div>
+            <div >
+            </div> */}
     
           </div>
         </DashboardLayout>
