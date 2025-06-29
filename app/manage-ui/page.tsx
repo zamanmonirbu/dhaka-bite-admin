@@ -1,5 +1,6 @@
 import DeliveryAreaManager from '@/components/DeliveryAreaManager'
 import HeroImageManage from '@/components/hero-image-manage'
+import ReviewRating from '@/components/review-rating'
 import { DashboardLayout } from '@/dashboard'
 import React from 'react'
 
@@ -18,6 +19,7 @@ export default function page() {
     
               <HeroImageManage />
             <DeliveryAreaManager />
+            <ReviewRating />
             {/* <div >
             </div>
             <div >
