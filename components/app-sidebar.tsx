@@ -49,11 +49,7 @@ const navItems = [
     url: "/finance",
     icon: DollarSign,
   },
-  // {
-  //   title: "Earnings",
-  //   url: "/earnings",
-  //   icon: DollarSign,
-  // },
+  
   {
     title: "Delivery Areas",
     url: "/delivery-areas",
