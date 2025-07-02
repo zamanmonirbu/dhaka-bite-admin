@@ -77,6 +77,10 @@
   }
 }
 
+
+.toast {
+  border: 2px solid red !important; /* For debugging */
+}
 @layer base {
   * {
     @apply border-border;
@@ -85,3 +89,6 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+

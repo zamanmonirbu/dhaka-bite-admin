@@ -40,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 const defaultIngredient = { name: "", quantity: "", unit: "g" };
 const unitOptions = ["g", "kg", "ml", "l", "pcs"];
@@ -52,13 +53,22 @@ const weekDays = [
   "friday",
   "saturday",
 ];
-const mealTimes = ["breakfast", "lunch", "dinner"];
+const mealTimes = ["lunch", "dinner"];
 
 const MealManageByAdmin = () => {
-  const { data: packagesData } = useGetPackagesQuery();
+  const { toast } = useToast();
+
+  // Alert state for fallback messaging
+  const [alert, setAlert] = useState<{
+    type: 'success' | 'error';
+    message: string;
+    show: boolean;
+  }>({ type: 'success', message: '', show: false });
+
+  const { data: packagesData, isError: packagesError } = useGetPackagesQuery();
   const packages = packagesData?.data || [];
 
-  const { data: mealsData, isLoading } = useGetMealsQuery();
+  const { data: mealsData, isLoading, isError: mealsError } = useGetMealsQuery();
   const meals = mealsData?.data || [];
 
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
@@ -73,6 +83,36 @@ const MealManageByAdmin = () => {
   const [addMeal] = useAddMealMutation();
   const [updateMeal] = useUpdateMealMutation();
   const [deleteMeal] = useDeleteMealMutation();
+
+  // Show error toasts for API errors
+  React.useEffect(() => {
+    if (packagesError) {
+      const message = "Failed to load packages";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      setAlert({
+        type: 'error',
+        message: message,
+        show: true
+      });
+    }
+    if (mealsError) {
+      const message = "Failed to load meals";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      setAlert({
+        type: 'error',
+        message: message,
+        show: true
+      });
+    }
+  }, [packagesError, mealsError, toast]);
 
   function getInitialFormState() {
     return {
@@ -131,16 +171,48 @@ const MealManageByAdmin = () => {
     });
 
     try {
+      let response;
       if (editingMealId) {
-        await updateMeal({ id: editingMealId, data: payload }).unwrap();
+        response = await updateMeal({ id: editingMealId, data: payload }).unwrap();
+        const message = response.message || "Meal updated successfully";
+        toast({
+          title: "Success",
+          description: message,
+          className: "bg-green-500 text-white",
+        });
+        setAlert({
+          type: 'success',
+          message: message,
+          show: true
+        });
       } else {
-        await addMeal(payload as any).unwrap();
+        response = await addMeal(payload as any).unwrap();
+        const message = response.message || "Meal created successfully";
+        toast({
+          title: "Success",
+          description: message,
+          className: "bg-green-500 text-white",
+        });
+        setAlert({
+          type: 'success',
+          message: message,
+          show: true
+        });
       }
       resetForm();
-      alert(editingMealId ? "Meal updated successfully" : "Meal created successfully");
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
+    } catch (err: any) {
+      const message = err.data?.message || err.message || "Something went wrong";
+      console.error("Submission error:", err);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      setAlert({
+        type: 'error',
+        message: message,
+        show: true
+      });
     }
   };
 
@@ -155,13 +227,32 @@ const MealManageByAdmin = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this meal?")) return;
     try {
-      await deleteMeal(id).unwrap();
-      alert("Meal deleted successfully");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete meal");
+      const response = await deleteMeal(id).unwrap();
+      const message = response.message || "Meal deleted successfully";
+      toast({
+        title: "Success",
+        description: message,
+        className: "bg-green-500 text-white",
+      });
+      setAlert({
+        type: 'success',
+        message: message,
+        show: true
+      });
+    } catch (err: any) {
+      const message = err.data?.message || err.message || "Failed to delete meal";
+      console.error("Delete error:", err);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      setAlert({
+        type: 'error',
+        message: message,
+        show: true
+      });
     }
   };
 
@@ -205,20 +296,35 @@ const MealManageByAdmin = () => {
     );
   };
 
+  const getTimeBgColor = (time: string) => {
+    return time === "lunch"
+      ? "bg-amber-50 hover:bg-amber-100"
+      : "bg-blue-50 hover:bg-blue-100";
+  };
+
+  const getTimeTextColor = (time: string) => {
+    return time === "lunch" ? "text-amber-800" : "text-blue-800";
+  };
+
+  const getAddButtonVariant = (time: string) => {
+    return time === "lunch" ? "outline" : "default";
+  };
+
+
   return (
     <div className="p-6 min-w-8xl mx-auto space-y-8">
       {/* Add/Edit Meal Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-2xl">
               {editingMealId ? "Edit Meal" : "Add New Meal"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Meal Name</Label>
+                <Label htmlFor="name" className="font-medium">Meal Name</Label>
                 <Input
                   id="name"
                   placeholder="Meal name"
@@ -227,11 +333,12 @@ const MealManageByAdmin = () => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   required
+                  className="focus-visible:ring-2"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
+                <Label htmlFor="time" className="font-medium">Time</Label>
                 <Select
                   value={formData.time}
                   onValueChange={(value) =>
@@ -239,12 +346,12 @@ const MealManageByAdmin = () => {
                   }
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-visible:ring-2">
                     <SelectValue placeholder="Select Time" />
                   </SelectTrigger>
                   <SelectContent>
                     {mealTimes.map((time) => (
-                      <SelectItem key={time} value={time}>
+                      <SelectItem key={time} value={time} className="capitalize">
                         {time.charAt(0).toUpperCase() + time.slice(1)}
                       </SelectItem>
                     ))}
@@ -253,13 +360,13 @@ const MealManageByAdmin = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="package">Package</Label>
+                <Label htmlFor="package" className="font-medium">Package</Label>
                 <Select
                   value={formData.foodPackage}
                   onValueChange={handlePackageChange}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-visible:ring-2">
                     <SelectValue placeholder="Select Package" />
                   </SelectTrigger>
                   <SelectContent>
@@ -273,7 +380,7 @@ const MealManageByAdmin = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
+                <Label htmlFor="price" className="font-medium">Price</Label>
                 <Input
                   id="price"
                   type="number"
@@ -282,11 +389,12 @@ const MealManageByAdmin = () => {
                     setFormData({ ...formData, price: parseFloat(e.target.value) })
                   }
                   required
+                  className="focus-visible:ring-2"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="delivery">Delivery Charges</Label>
+                <Label htmlFor="delivery" className="font-medium">Delivery Charges</Label>
                 <Input
                   id="delivery"
                   type="number"
@@ -298,23 +406,24 @@ const MealManageByAdmin = () => {
                       deliveryCharges: parseFloat(e.target.value),
                     })
                   }
+                  className="focus-visible:ring-2"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="availability">Available Day</Label>
+                <Label htmlFor="availability" className="font-medium">Available Day</Label>
                 <Select
                   value={formData.availability}
                   onValueChange={(value) =>
                     setFormData({ ...formData, availability: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-visible:ring-2">
                     <SelectValue placeholder="Select Day" />
                   </SelectTrigger>
                   <SelectContent>
                     {weekDays.map((day) => (
-                      <SelectItem key={day} value={day}>
+                      <SelectItem key={day} value={day} className="capitalize">
                         {day.charAt(0).toUpperCase() + day.slice(1)}
                       </SelectItem>
                     ))}
@@ -323,7 +432,7 @@ const MealManageByAdmin = () => {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="font-medium">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="Description"
@@ -332,22 +441,24 @@ const MealManageByAdmin = () => {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   required
+                  className="focus-visible:ring-2 min-h-[100px]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image">Image</Label>
+                <Label htmlFor="image" className="font-medium">Image</Label>
                 <Input
                   id="image"
                   type="file"
                   onChange={handleImageChange}
                   accept="image/*"
+                  className="focus-visible:ring-2"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Ingredients</Label>
+              <Label className="font-medium">Ingredients</Label>
               <div className="space-y-2">
                 {formData.ingredients.map((ing: any, i: number) => (
                   <div key={i} className="grid grid-cols-12 gap-2 items-center">
@@ -358,6 +469,7 @@ const MealManageByAdmin = () => {
                         onChange={(e) =>
                           handleIngredientChange(i, "name", e.target.value)
                         }
+                        className="focus-visible:ring-2"
                       />
                     </div>
                     <div className="col-span-3">
@@ -367,6 +479,7 @@ const MealManageByAdmin = () => {
                         onChange={(e) =>
                           handleIngredientChange(i, "quantity", e.target.value)
                         }
+                        className="focus-visible:ring-2"
                       />
                     </div>
                     <div className="col-span-3">
@@ -376,7 +489,7 @@ const MealManageByAdmin = () => {
                           handleIngredientChange(i, "unit", value)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="focus-visible:ring-2">
                           <SelectValue placeholder="Unit" />
                         </SelectTrigger>
                         <SelectContent>
@@ -394,6 +507,7 @@ const MealManageByAdmin = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
+                          className="text-red-500 hover:text-red-700"
                           onClick={() => {
                             const updated = [...formData.ingredients];
                             updated.splice(i, 1);
@@ -409,6 +523,7 @@ const MealManageByAdmin = () => {
                 <Button
                   type="button"
                   variant="outline"
+                  className="w-full border-dashed"
                   onClick={() =>
                     setFormData({
                       ...formData,
@@ -426,10 +541,14 @@ const MealManageByAdmin = () => {
                 type="button"
                 variant="outline"
                 onClick={() => resetForm()}
+                className="border-gray-300 hover:bg-gray-100"
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 {editingMealId ? "Update Meal" : "Create Meal"}
               </Button>
             </div>
@@ -438,42 +557,56 @@ const MealManageByAdmin = () => {
       </Dialog>
 
       {/* Meals Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Meals</CardTitle>
+      <Card className="border shadow-sm">
+        <CardHeader className="bg-gray-50 rounded-t-lg">
+          <CardTitle className="text-xl font-semibold">All Meals</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+            </div>
+          ) : meals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <p className="text-gray-500 text-lg">No meals available yet.</p>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => setIsAddModalOpen(true)}
+              >
+                + Add First Meal
+              </Button>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 p-4">
               {meals.map((pkg: any) => (
                 <div key={pkg._id} className="space-y-4">
-                  <h3 className="text-xl font-bold">{pkg.packageInfo.packageName}</h3>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {pkg.packageInfo.packageName}
+                  </h3>
                   <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-                    <Table className="min-w-[800px]">
-                      <TableHeader>
+                    <Table className="min-w-[700px]">
+                      <TableHeader className="bg-gray-100">
                         <TableRow>
-                          <TableHead>Day</TableHead>
-                          <TableHead>Breakfast</TableHead>
-                          <TableHead>Lunch</TableHead>
-                          <TableHead>Dinner</TableHead>
+                          <TableHead className="w-[120px] font-semibold text-gray-700">Day</TableHead>
+                          <TableHead className="font-semibold text-gray-700">Lunch</TableHead>
+                          <TableHead className="font-semibold text-gray-700">Dinner</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {weekDays.map((day) => (
-                          <TableRow key={day}>
-                            <TableCell className="font-medium capitalize min-w-[120px]">
-                              {day}
+                          <TableRow key={day} className="hover:bg-gray-50">
+                            <TableCell className="font-medium capitalize text-gray-700">
+                              {day.charAt(0).toUpperCase() + day.slice(1)}
                             </TableCell>
                             {mealTimes.map((time) => {
                               const meal = pkg.days[day]?.find(
                                 (m: any) => m.time === time
                               );
                               return (
-                                <TableCell key={time} className="min-w-[250px]">
+                                <TableCell
+                                  key={time}
+                                  className={`${getTimeBgColor(time)} border`}
+                                >
                                   {meal ? (
                                     <div className="flex justify-between items-start gap-4">
                                       <div className="flex-1">
@@ -485,6 +618,7 @@ const MealManageByAdmin = () => {
                                             <Button
                                               size="sm"
                                               variant="outline"
+                                              className="hover:bg-gray-200"
                                               onClick={() => handleEdit(meal)}
                                             >
                                               Edit
@@ -511,13 +645,14 @@ const MealManageByAdmin = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-center">
                                       <Button
                                         size="sm"
-                                        variant="ghost"
+                                        variant={getAddButtonVariant(time)}
+                                        className={`${time === 'lunch' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
                                         onClick={() => openAddMealModal(pkg._id, day, time)}
                                       >
-                                        + Add {time}
+                                        + Add {time.charAt(0).toUpperCase() + time.slice(1)}
                                       </Button>
                                     </div>
                                   )}
@@ -535,7 +670,11 @@ const MealManageByAdmin = () => {
             </div>
           )}
         </CardContent>
+
       </Card>
+
+
+
     </div>
   );
 };

@@ -35,22 +35,26 @@ export const areaApi = baseApi.injectEndpoints({
         method: "POST",
         body: input,
       }),
+      invalidatesTags: ['DeliveryArea'], // Add this to refresh the list after creation
     }),
     updateArea: builder.mutation<void, UpdateAreaInput>({
-      query: (input) => ({
-        url: `/delivery-area/${input._id}`,
-        method: "PATCH",
+      query: ({ _id, ...input }) => ({
+        url: `/delivery-area/${_id}`,
+        method: "PUT",
         body: input,
       }),
+      invalidatesTags: ['DeliveryArea'], // Add this to refresh the list after update
     }),
     deleteArea: builder.mutation<void, DeleteAreaInput>({
-      query: (input) => ({
-        url: `/delivery-area/${input._id}`,
+      query: ({ _id }) => ({ // Fixed: destructure _id from input object
+        url: `/delivery-area/${_id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ['DeliveryArea'], // Add this to refresh the list after deletion
     }),
-    getAreas: builder.query<Area[], void>({
+    getAreas: builder.query<{ data: Area[] }, void>({
       query: () => "/delivery-area",
+      providesTags: ['DeliveryArea'], // Add this for caching
     }),
   }),
 })
@@ -61,4 +65,3 @@ export const {
   useDeleteAreaMutation,
   useGetAreasQuery,
 } = areaApi
-

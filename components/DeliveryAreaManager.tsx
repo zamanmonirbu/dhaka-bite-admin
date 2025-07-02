@@ -25,9 +25,9 @@ const DeliveryAreaManager = () => {
   const [updateArea] = useUpdateAreaMutation()
   const [deleteArea] = useDeleteAreaMutation()
 
-  const deliveryAreas = data?.data || []
+  const deliveryAreas = data?.data || [];
 
-  console.log("Delivery Areas:", deliveryAreas)
+  console.log(deliveryAreas)
 
   const [formData, setFormData] = useState({
     areaName: "",
@@ -59,17 +59,22 @@ const DeliveryAreaManager = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    await createArea({
-      ...formData,
-      latitude: parseFloat(formData.latitude),
-      longitude: parseFloat(formData.longitude),
-      radius: parseFloat(formData.radius),
-    })
-    setFormData({ areaName: "", latitude: "", longitude: "", radius: "" })
-    setSelectedPosition(null)
+    try {
+      await createArea({
+        ...formData,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        radius: parseFloat(formData.radius),
+      }).unwrap()
+      setFormData({ areaName: "", latitude: "", longitude: "", radius: "" })
+      setSelectedPosition(null)
+    } catch (error) {
+      console.error("Failed to create area:", error)
+    }
   }
 
   const handleEditClick = (area: DeliveryArea) => {
+    console.log("Editing area:", area._id)
     setEditId(area._id)
     setEditData(area)
   }
@@ -80,20 +85,29 @@ const DeliveryAreaManager = () => {
   }
 
   const handleUpdate = async (id: string) => {
-    await updateArea({
-      id,
-      ...editData,
-      latitude: parseFloat(editData.latitude as any),
-      longitude: parseFloat(editData.longitude as any),
-      radius: parseFloat(editData.radius as any),
-    })
-    setEditId(null)
-    setEditData({})
+    try {
+      await updateArea({
+        _id: id, // Changed from 'id' to '_id'
+        ...editData,
+        latitude: parseFloat(editData.latitude as any),
+        longitude: parseFloat(editData.longitude as any),
+        radius: parseFloat(editData.radius as any),
+      }).unwrap()
+      setEditId(null)
+      setEditData({})
+    } catch (error) {
+      console.error("Failed to update area:", error)
+    }
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this area?")) {
-      await deleteArea({ id })
+  const handleDelete = async (id: string, areaName: string) => {
+    console.log("Deleting area:", id)
+    if (confirm(`Are you sure you want to delete "${areaName}"?`)) {
+      try {
+        await deleteArea({ _id: id }).unwrap() // Changed from {id} to {_id: id}
+      } catch (error) {
+        console.error("Failed to delete area:", error)
+      }
     }
   }
 
@@ -257,7 +271,7 @@ const DeliveryAreaManager = () => {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(area._id)}
+                            onClick={() => handleDelete(area._id, area.areaName)}
                             className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm"
                           >
                             Delete
